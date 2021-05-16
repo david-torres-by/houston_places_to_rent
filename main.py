@@ -1,5 +1,13 @@
+import re
 from bs4 import BeautifulSoup
 import requests
+from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
+
+# Chrome driver path for Selenium
+#chrome_driver_path = "C:\Development\chromedriver.exe"
+#driver = webdriver.Chrome(executable_path= chrome_driver_path)
+#driver.get("https://www.zillow.com/homes/for_rent/San-Antonio,-TX_rb/")
 
 # Headers on my request.get
 headers = {
@@ -8,16 +16,30 @@ headers = {
 }
 
 ### Constants ###
+number_of_page = 1
+# Count of links that it'll retrieve of each page
+count = 0
+# Count of prices that it'll retrieve of each page
+prices_count = 0
+web_pages = ["https://www.zillow.com/homes/for_rent/San-Antonio,-TX_rb/"]
 # a total of 7 pages
-price_pages = ["https://www.zillow.com/houston-tx/apartments/1-_beds/paymenta_sort/?searchQueryState=%7B%22usersSearchTerm%22%3A%22Houston%2C%20TX%22%2C%22mapBounds%22%3A%7B%22west%22%3A-95.87288353290072%2C%22east%22%3A-95.14229271258822%2C%22south%22%3A29.32700450652518%2C%22north%22%3A30.28267889014576%7D%2C%22regionSelection%22%3A%5B%7B%22regionId%22%3A39051%2C%22regionType%22%3A6%7D%5D%2C%22isMapVisible%22%3Atrue%2C%22filterState%22%3A%7B%22price%22%3A%7B%22max%22%3A307707%7D%2C%22beds%22%3A%7B%22min%22%3A1%7D%2C%22fore%22%3A%7B%22value%22%3Afalse%7D%2C%22mp%22%3A%7B%22max%22%3A1000%7D%2C%22ah%22%3A%7B%22value%22%3Atrue%7D%2C%22auc%22%3A%7B%22value%22%3Afalse%7D%2C%22nc%22%3A%7B%22value%22%3Afalse%7D%2C%22fr%22%3A%7B%22value%22%3Atrue%7D%2C%22fsbo%22%3A%7B%22value%22%3Afalse%7D%2C%22cmsn%22%3A%7B%22value%22%3Afalse%7D%2C%22fsba%22%3A%7B%22value%22%3Afalse%7D%2C%22sort%22%3A%7B%22value%22%3A%22paymenta%22%7D%7D%2C%22isListVisible%22%3Atrue%2C%22pagination%22%3A%7B%7D%7D"]
+for i in range(1):
+	number_of_page += 1
+	page = f"https://www.zillow.com/homes/for_rent/San-Antonio,-TX_rb/{number_of_page}_p/"
+	web_pages.append(page)
+
+print(web_pages)
 
 # empty list for the prices
 house_prices_list = []
 test_list = []
-tag_html = []
+link_list = []
+price = []
+
+# Making a bot that makes sure that the filter is always on 1000
 
 ### For loop to iterate through the web pages ###
-for page in price_pages:
+for page in web_pages:
 	google_form_link = "https://docs.google.com/forms/d/e/1FAIpQLSe1CmIORWNM4PHgbja7ipbUn5kqr_fiU3BVKYaqAS9U9K5Ixw/viewform?usp=sf_link"
 	response = requests.get(page, headers = headers)
 	houston_houses = response.text
@@ -26,47 +48,105 @@ for page in price_pages:
 
 	house_price = soup.select('.list-card-heading')
 
-	for house in house_price:
-		tag_html.append(house)
-
 	for price in house_price:
 		test_list.append(price.text)
 
-	for price in house_price:
-		number = ""
-		print(price.text)
-		for char in price.text:
-			if char == "+":
-				break
-			elif char.isdigit():
-				number += char
-		house_prices_list.append(number)
+	house_price2 = soup.find_all("div",{"class":"list-card-info"})
+
+	for tag in house_price2:
+		image_heading = soup.find_all("div",{"class":"list-card-heading"})
+		#for price in image_heading:
+			#price_of_houses = soup.find_all("div",{"class":"list-card-price"})
+			#price_of_houses2 = soup.select('.list-card-price')
+
+
+
+
+	#for price in house_price:
+		#number = ""
+		#print(price.text)
+		#for char in price.text:
+			#if char == "+":
+				#break
+			#elif char.isdigit():
+				#number += char
+		#house_prices_list.append(number)
 				#house_prices_list.append(price.text)
 
+	house_link = soup.find_all("div",{"class":"list-card-info"})
+
+	#links of each house
+	for link in house_link:
+		link_tag = link.find_all("a", {"class": "list-card-link list-card-link-top-margin"})
+		#print(link_tag)
+		for link in link_tag:
+			if "https" not in link.get("href"):
+				break
+			else:
+				count += 1
+				links = link.get("href")
+				link_list.append(links)
+
+	#print(house_link_test.text)
 	#for price in house_price:
 		#number = price.split('$')[1]
 		#print(number)
-for i in range(len(test_list)):
-	print(test_list[i], "\t", house_prices_list[i])
-# print(f"The test is this {test_list}")
 
-for i in range(len(tag_html)):
-	print(tag_html[i])
+##### Printing Each price and next to it, the price separated #####
+#for i in range(len(test_list)):
+	#print(test_list[i], "\t", house_prices_list[i])
+
+#prices in each of the links
+print(link_list)
+print(f"There is a total of {count} house links")
+for link in link_list:
+	response2 = requests.get(link, headers = headers)
+	price_page = response2.text
+	soup2 = BeautifulSoup(price_page, "html.parser")
+
+	house_price2 = soup2.find_all("div",{"hdp__sc-1tsvzbc-1 FNtGJ ds-chip"})
+	#house_price2 = soup2.select('.Text-c11n-8-33-0__aiai24-0')
+	for price in house_price2:
+		prices = price.find_all("span", {"Text-c11n-8-33-0__aiai24-0 sc-pIITJ gXthEq"})
+		for price in prices:
+			prices_count += 1
+			#int_price = ''.join(x for x in price.text if x.isdigit())
+			house_prices_list.append(price.text)
+
+print(f"There is a total of {prices_count} prices")
+
+prices_count = 0
+iterations = 0
+for price in house_prices_list:
+	prices_count += 1
+	int_price = re.sub('[^0-9,]', "", price).replace(",", "")
+	house_prices_list[iterations] = int(int_price)
+	iterations += 1
+
+print(f"There is a total of {prices_count} prices")
+
+for i in range(len(link_list)):
+	print(link_list[i], "\t", house_prices_list[i])
+
+print("##### MY OWN FILTERS NURUJUJU #####")
+my_own_price_list = []
+my_own_links_list = []
+index_prices_list = []
+
+for price in house_prices_list:
+	if price > 1500:
+		pass
+	else:
+		#print(house_prices_list.index(price))
+		index_prices_list.append(house_prices_list.index(price))
+
+print(index_prices_list)
+
+for index in index_prices_list:
+	my_own_price_list.append(house_prices_list[index])
+	my_own_links_list.append(link_list[index])
 
 
-
-#page = "https://www.zillow.com/homes/Houston,-TX_rb/"
-#response_1 = requests.get(page, headers = headers)
-#houston_houses_1 = response_1.text
-
-#soup_1 = BeautifulSoup(houston_houses_1, "html.parser")
-
-#house_price_1 = soup_1.select('.list-card-price')
-
-#tag_html_1 = []
-
-#for house in house_price_1:
-	#price = house.select(".list-card-price")[0].contents[0]
-#	tag_html_1.append(house.text)
-
-#print(tag_html_1)
+print("####Rent of houses above $1500 USD JIJIJI####")
+for i in range(len(link_list)):
+	print(my_own_links_list[i], "\t", my_own_price_list[i])
